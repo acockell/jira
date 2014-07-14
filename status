@@ -62,17 +62,24 @@ echo "Finding Tickets in Epics overall"
 
 for (( cnt=0; cnt<$all_count; cnt++ ))
 do
-  issue_in_epic_epic_key=$(cat all_response | jsawk -n "out(this.issues[$cnt].fields.customfield_10910)")
+
+  interested_in=$(cat all_response | jsawk -n "out(this.issues[$cnt])")
+  issue_in_epic_epic_key=$(echo $interested_in | jsawk -n "out(this.fields.customfield_10910)")
   if [ $issue_in_epic_epic_key != "null" ]; then
-    echo $issue_in_epic_epic_key >> epic_count
+    status=$(echo $interested_in | jsawk -n "out(this.fields.status.name)")
+    if [ "$status" == "In Progress" ]; then
+      status="In-Progress"
+    fi
+    echo "$issue_in_epic_epic_key | $status" >> epic_count
   fi
 done
 
 sorted_epic_values=($(sort epic_count | uniq -c | awk '{ print $1 }'))
 sorted_epic_keys=($(sort epic_count | uniq -c | awk '{ print $2 }'))
+sorted_epic_status=($(sort epic_count | uniq -c | awk '{ print $4 }'))
 sorted_epic_summaries=()
 
-for (( cnt=0; cnt<$epic_count; cnt++ ))
+for (( cnt=0; cnt<${#sorted_epic_status[@]}; cnt++ ))
 do
   for (( cntb=0; cntb<$epic_count; cntb++ ))
   do
@@ -87,12 +94,20 @@ done
 echo ""
 echo "Data Technology epics and progress during the current sprint"
 
-for (( cnt=0; cnt<$epic_count; cnt++ ))
+last_epic=""
+
+for (( cnt=0; cnt<${#sorted_epic_status[@]}; cnt++ ))
 do
   
   if [ "${sorted_epic_summaries[cnt]}" ]; then
-    echo "${sorted_epic_keys[cnt]}: ${sorted_epic_summaries[cnt]} (${sorted_epic_values[cnt]} issues total)"
+    if [ "${sorted_epic_keys[cnt]}" != "$last_epic" ]; then
+      echo "${sorted_epic_keys[cnt]}: ${sorted_epic_summaries[cnt]}"
+    fi
   fi
+
+  echo "[ ${sorted_epic_status[cnt]} ] (${sorted_epic_values[cnt]} issues total)"
+
+  last_epic=${sorted_epic_keys[cnt]}
 
   for (( cntb=0; cntb<$other_count; cntb++ ))
   do
@@ -101,9 +116,20 @@ do
     if [[ "$line" == "${sorted_epic_keys[cnt]}" && "$line" != "" ]]; then
       task=$(cat epic_tickets | awk "NR==$cntb" | cut -d'|' -f 2 )
       summary=$(cat epic_tickets | awk "NR==$cntb" | cut -d'|' -f 3 )
-      progress=$(cat epic_tickets | awk "NR==$cntb" | cut -d'|' -f 4 )
-      echo "$task [ $progress ]  $summary"
+      progress=$(cat epic_tickets | awk "NR==$cntb" | cut -d'|' -f 4 | sed 's/^ *//')
+      if [ "${sorted_epic_status[cnt]//-/ }" == "$progress" ]; then
+        echo "$task -  $summary"
+      fi
     fi
   done
   echo ""
 done
+
+
+
+rm -rf all_response    
+rm -rf epic_count
+rm -rf epic_response   
+rm -rf epic_tickets
+rm -rf epics 
+rm -rf sprint_response
