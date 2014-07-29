@@ -15,48 +15,53 @@
 username=$1
 pass=$2
 
+sprints=(117 125 126)
+
 rm -rf epics
 rm -rf epic_tickets
 rm -rf epic_count
 
 echo "---------------"
 echo "Finding Epics: "
-curl  -H "Content-Type: application/json; charset=UTF-8" -u $username:$pass "https://radiumone.jira.com/rest/api/2/search?jql=project="Datatech"%20AND%20issuetype="Epic"%20AND%20labels=DWPM&maxResults=1000" > epic_response
+curl --silent  -H "Content-Type: application/json; charset=UTF-8" -u $username:$pass "https://radiumone.jira.com/rest/api/2/search?jql=project="Datatech"%20AND%20issuetype="Epic"%20AND%20labels=DWPM&maxResults=1000" > epic_response
 epic_count=$(cat epic_response | jsawk -n 'out(this.issues)' | jsawk -a 'return this.length')
 echo $epic_count epics
 
-echo "-------------------"
-echo "Finding Non-epics in Sprint: "
-curl  -H "Content-Type: application/json; charset=UTF-8" -u $username:$pass "https://radiumone.jira.com/rest/api/2/search?jql=project="Datatech"%20AND%20issuetype!="Epic"%20AND%20labels=DWPM%20AND%20sprint=125+order+by+priority&maxResults=1000" > sprint_response
-other_count=$(cat sprint_response | jsawk -n 'out(this.issues)' | jsawk -a 'return this.length')
-echo $other_count issues
 
-echo "-----"
-echo "Epics"
-issue=()
-field=()
+epic_summary=()
+epic_key=()
 for (( cnt=0; cnt<$epic_count; cnt++ ))
 do
   interested_in=$(cat epic_response | jsawk -n "out(this.issues[$cnt])")
-  epic[cnt]=$(echo $interested_in | jsawk -n "out(this.key)")
-  field[cnt]=$(echo $interested_in | jsawk -n "out(this.fields.summary)")
-  echo "${epic[cnt]} | ${field[cnt]}" >> epics
+  epic_key[cnt]=$(echo $interested_in | jsawk -n "out(this.key)")
+  epic_summary[cnt]=$(echo $interested_in | jsawk -n "out(this.fields.summary)")
+  echo "${epic_key[cnt]} | ${epic_summary[cnt]}" >> epics
 done
 
-echo "-----------------------"
-echo "Finding Tickets in Epics for sprint"
-
-for (( cnt=0; cnt<$other_count; cnt++ ))
+for sprint in "${sprints[@]}"
 do
 
-  interested_in=$(cat sprint_response | jsawk -n "out(this.issues[$cnt])")
-  issue_summary=$(echo $interested_in | jsawk -n "out(this.fields.summary)")
-  issue_key=$(echo $interested_in | jsawk -n "out(this.key)")
-  issue_status=$(echo $interested_in | jsawk -n "out(this.fields.status.name)")
-  echo "$issue_key |  $issue_summary |  $issue_status"
+  echo "-------------------"
+  echo "Finding Non-epics in Sprint: "
+  curl --silent  -H "Content-Type: application/json; charset=UTF-8" -u $username:$pass "https://radiumone.jira.com/rest/api/2/search?jql=project="Datatech"%20AND%20issuetype!="Epic"%20AND%20labels=DWPM%20AND%20sprint=$sprint+order+by+priority&maxResults=1000" > sprint_response
+  other_count=$(cat sprint_response | jsawk -n 'out(this.issues)' | jsawk -a 'return this.length')
+  echo $other_count issues
+
+  echo "-----------------------"
+  echo "Finding Tickets for Sprint $sprint"
+
+  for (( cnt=0; cnt<$other_count; cnt++ ))
+  do
+    interested_in=$(cat sprint_response | jsawk -n "out(this.issues[$cnt])")
+    issue_assignee=$(echo $interested_in | jsawk -n "out(this.fields.assignee.displayName)")
+    issue_summary=$(echo $interested_in | jsawk -n "out(this.fields.summary)")
+    issue_key=$(echo $interested_in | jsawk -n "out(this.key)")
+    issue_status=$(echo $interested_in | jsawk -n "out(this.fields.status.name)")
+    issue_status_id=$(echo $interested_in | jsawk -n "out(this.fields.status.id)")
+    echo "$issue_assignee | $issue_key |  $issue_summary |  $issue_status | $issue_status_id "
+  done
 
 done
-
 
 rm -rf all_response    
 rm -rf epic_count
