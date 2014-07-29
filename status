@@ -15,7 +15,7 @@
 username=$1
 pass=$2
 
-sprints=(117 125 126)
+sprints=(125 126)
 
 rm -rf epics
 rm -rf epic_tickets
@@ -58,7 +58,8 @@ do
     issue_key=$(echo $interested_in | jsawk -n "out(this.key)")
     issue_status=$(echo $interested_in | jsawk -n "out(this.fields.status.name)")
     issue_status_id=$(echo $interested_in | jsawk -n "out(this.fields.status.id)")
-    echo "$issue_assignee | $issue_key |  $issue_summary |  $issue_status | $issue_status_id "
+    issue_estimate=$(echo $interested_in | jsawk -n "out(this.fields.aggregatetimeoriginalestimate)")
+    echo "$issue_assignee | $issue_key |  $issue_summary |  $issue_status | $issue_status_id | $issue_estimate"
   done
 
 done
