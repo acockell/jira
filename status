@@ -16,6 +16,7 @@ username=$1
 pass=$2
 
 sprints=(125 126)
+sprint_count=${#sprints[@]}
 
 rm -rf epics
 rm -rf epic_tickets
@@ -41,14 +42,8 @@ done
 for sprint in "${sprints[@]}"
 do
 
-  echo "-------------------"
-  echo "Finding Non-epics in Sprint: "
   curl --silent  -H "Content-Type: application/json; charset=UTF-8" -u $username:$pass "https://radiumone.jira.com/rest/api/2/search?jql=project="Datatech"%20AND%20issuetype!="Epic"%20AND%20labels=DWPM%20AND%20sprint=$sprint+order+by+assignee&maxResults=1000" > sprint_response
   other_count=$(cat sprint_response | jsawk -n 'out(this.issues)' | jsawk -a 'return this.length')
-  echo $other_count issues
-
-  echo "-----------------------"
-  echo "Finding Tickets for Sprint $sprint"
 
   for (( cnt=0; cnt<$other_count; cnt++ ))
   do
@@ -60,12 +55,30 @@ do
     issue_status=$(echo $interested_in | jsawk -n "out(this.fields.status.name)")
     issue_status_id=$(echo $interested_in | jsawk -n "out(this.fields.status.id)")
     issue_estimate=$(echo $interested_in | jsawk -n "out(this.fields.aggregatetimeoriginalestimate)")
-    echo "$issue_assignee_username | $issue_assignee | $sprint | $issue_key |  $issue_summary |  $issue_status | $issue_status_id | $issue_estimate" >> sprint
+    echo "$issue_assignee_username|$issue_assignee|$sprint|$issue_key|$issue_summary|$issue_status|$issue_status_id|$issue_estimate" >> sprint
   done
 
+  developers=($(sort -k 1 -t"|" sprint | cut -d"|" -f1 | uniq))
 done
 
-#rm -rf sprint_*
+printf "\n%-30s %-7s %-7s %-7s %-7s %-7s %-7s %-10s %s", "Developer" "Sprint" "Issues" "Done" "Current" "To-Do" "Days" "Days-Done" "Progress"
+
+for developer in "${developers[@]}"
+do
+  current_sprint=1
+  for sprint in ${sprints[@]}
+  do
+    final=0
+    if [ $current_sprint -eq $sprint_count ]; then
+      final=1
+    fi
+    awk -v "developer=$developer" -v "sprint=$sprint" -v "final=$final" -f process.awk sprint
+    current_sprint=$((current_sprint+1))
+  done
+done
+
+
+rm -rf sprint
 rm -rf all_response    
 rm -rf epic_count
 rm -rf epic_response   
