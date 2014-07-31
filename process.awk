@@ -26,6 +26,7 @@ BEGIN {
     }
     else {
       # ticket not completed
+      print $4" "$5 >> "dev_remaining"
       if($7 == 3){
         # ticket in progress
         in_progress_count++
@@ -54,6 +55,6 @@ END {
   if(time_commitment > 0){
     percent_complete=(complete_time/time_commitment*100)
   }
-  printf "\n%-30s %-7s %-7s %-7s %-7s %-7s %-7.1f %-10.1f %.1f%%", developer_name, sprint, issue_count, complete_count, in_progress_count, unstarted_count, (time_commitment/60/60/24), (complete_time/60/60/24), percent_complete
+  printf "\n%-30s %-7s %-7s %-7s %-7s %-7s %-7.1f %-10.1f %.1f%%", developer_name, sprint, issue_count, complete_count, in_progress_count, unstarted_count, (time_commitment/60/60/24), (complete_time/60/60/24), percent_complete >> "dev_report"
 
 }

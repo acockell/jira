@@ -14,13 +14,11 @@
 
 username=$1
 pass=$2
-
 sprints=(125 126)
 sprint_count=${#sprints[@]}
 
-rm -rf epics
-rm -rf epic_tickets
-rm -rf epic_count
+rm -rf dev_remaining
+rm -rf dev_report
 
 echo "---------------"
 echo "Finding Epics: "
@@ -61,10 +59,11 @@ do
   developers=($(sort -k 1 -t"|" sprint | cut -d"|" -f1 | uniq))
 done
 
-printf "\n%-30s %-7s %-7s %-7s %-7s %-7s %-7s %-10s %s", "Developer" "Sprint" "Issues" "Done" "Current" "To-Do" "Days" "Days-Done" "Progress"
+printf "%-30s %-7s %-7s %-7s %-7s %-7s %-7s %-10s %s" "Developer" "Sprint" "Issues" "Done" "Working" "To-Do" "Days" "Days-Done" "Progress" > dev_report
 
 for developer in "${developers[@]}"
 do
+  echo $developer >> dev_remaining
   current_sprint=1
   for sprint in ${sprints[@]}
   do
@@ -75,13 +74,12 @@ do
     awk -v "developer=$developer" -v "sprint=$sprint" -v "final=$final" -f process.awk sprint
     current_sprint=$((current_sprint+1))
   done
+  echo "" >> dev_remaining
 done
 
+echo "Done."
 
 rm -rf sprint
-rm -rf all_response    
-rm -rf epic_count
 rm -rf epic_response   
-rm -rf epic_tickets
 rm -rf epics 
 rm -rf sprint_response
