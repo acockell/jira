@@ -14,7 +14,7 @@
 
 username=$1
 pass=$2
-sprints=(125 126)
+sprints=(126 125) #sprints in descending order
 sprint_count=${#sprints[@]}
 
 rm -rf dev_remaining
@@ -59,7 +59,9 @@ do
   developers=($(sort -k 1 -t"|" sprint | cut -d"|" -f1 | uniq))
 done
 
-printf "%-30s %-7s %-7s %-7s %-7s %-7s %-7s %-10s %s" "Developer" "Sprint" "Issues" "Done" "Working" "To-Do" "Days" "Days-Done" "Progress" > dev_report
+#printf "%-30s %-7s %-7s %-7s %-7s %-7s %-7s %-10s %s" "Developer" "Sprint" "Issues" "Done" "Working" "To-Do" "Days" "Days-Done" "Progress" > dev_report
+
+echo "Remaining work for current sprint by developer" > dev_remaining
 
 for developer in "${developers[@]}"
 do
@@ -68,7 +70,7 @@ do
   for sprint in ${sprints[@]}
   do
     final=0
-    if [ $current_sprint -eq $sprint_count ]; then
+    if [ $current_sprint -eq 1 ]; then
       final=1
     fi
     awk -v "developer=$developer" -v "sprint=$sprint" -v "final=$final" -f process.awk sprint
@@ -79,7 +81,16 @@ done
 
 echo "Done."
 
+echo "" >> dev_report
+cat dev_remaining >> dev_report
+
+cat dev_report
+
+mail -s "Data Warehouse Sprint Status" -F "adam@radiumone.com" "adam@radiumone.com" "adam+1@radiumone.com" < dev_report
+
 rm -rf sprint
 rm -rf epic_response   
 rm -rf epics 
 rm -rf sprint_response
+rm -rf dev_report
+rm -rf dev_remaining

@@ -1,6 +1,6 @@
 #! /usr/bin/awk -f
 # Adam Cockell
-# usage: awk -v developer=devusername -f process.awk sprint
+# awk -v "developer=$developer" -v "sprint=$sprint" -v "final=$final" -f process.awk sprint
 
 BEGIN {
   RS = "\n"
@@ -26,7 +26,7 @@ BEGIN {
     }
     else {
       # ticket not completed
-      print $4" "$5 >> "dev_remaining"
+      print "- "$4" "$5" ("$6")" >> "dev_remaining"
       if($7 == 3){
         # ticket in progress
         in_progress_count++
@@ -40,21 +40,25 @@ BEGIN {
 }
 
 END {
-  
-  #print "Issues: "issue_count
-  #print "Total time commitment: "(time_commitment/60/60/24)" days"
-  #if(final == 1){
-  #  print "Completed: "complete_count
-  #  print "In-Progress: "in_progress_count
-  #  print "Unstarted: "unstarted_count
-  #  print "Time commitment so far: "(complete_time/60/60/24)" days"
-  #  print "Percentage of work completed: "(complete_time/time_commitment*100)"%"
-  #}
-
-  percent_complete = 0
-  if(time_commitment > 0){
-    percent_complete=(complete_time/time_commitment*100)
+  if(final == 1){
+    print "\n"developer_name" on the current sprint ("sprint")" >> "dev_report"
   }
-  printf "\n%-30s %-7s %-7s %-7s %-7s %-7s %-7.1f %-10.1f %.1f%%", developer_name, sprint, issue_count, complete_count, in_progress_count, unstarted_count, (time_commitment/60/60/24), (complete_time/60/60/24), percent_complete >> "dev_report"
+  else {
+    print "\nOn sprint "sprint >> "dev_report"
+  }
+  print "- Issues: "issue_count >> "dev_report"
+  print "- Total time commitment: "(time_commitment/60/60/24)" days" >> "dev_report"
+  if(final == 1){
+    print "- Completed: "complete_count >> "dev_report"
+    print "- In-Progress: "in_progress_count >> "dev_report"
+    print "- Unstarted: "unstarted_count >> "dev_report"
+    print "- Time commitment so far: "(complete_time/60/60/24)" days" >> "dev_report"
+    percent_complete = 0
+    if(time_commitment > 0){
+      percent_complete=(complete_time/time_commitment*100)
+    }
+    print "- Percentage of work completed: "percent_complete"%" >> "dev_report"
+  }
+  #printf "\n%-30s %-7s %-7s %-7s %-7s %-7s %-7.1f %-10.1f %.1f%%", developer_name, sprint, issue_count, complete_count, in_progress_count, unstarted_count, (time_commitment/60/60/24), (complete_time/60/60/24), percent_complete >> "dev_report"
 
 }
