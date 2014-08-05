@@ -47,12 +47,12 @@ END {
     print "\nOn sprint "sprint >> "dev_report"
   }
   print "- Issues: "issue_count >> "dev_report"
-  print "- Total time commitment: "(time_commitment/60/60/24)" days" >> "dev_report"
+  print "- Total time commitment: "(time_commitment/60/60/6)" days" >> "dev_report"
   if(final == 1){
     print "- Completed: "complete_count >> "dev_report"
     print "- In-Progress: "in_progress_count >> "dev_report"
     print "- Unstarted: "unstarted_count >> "dev_report"
-    print "- Time commitment so far: "(complete_time/60/60/24)" days" >> "dev_report"
+    print "- Time commitment so far: "(complete_time/60/60/6)" days" >> "dev_report"
     percent_complete = 0
     if(time_commitment > 0){
       percent_complete=(complete_time/time_commitment*100)

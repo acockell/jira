@@ -14,83 +14,140 @@
 
 username=$1
 pass=$2
+report_type=$3
+
+if [ -z $report_type ]; then
+  #sprint
+  report_type=0
+
+  # 1 -> epic
+fi
+
 sprints=(126 125) #sprints in descending order
 sprint_count=${#sprints[@]}
 
-rm -rf dev_remaining
-rm -rf dev_report
+if [ $report_type -eq 1 ]; then
 
-echo "---------------"
-echo "Finding Epics: "
-curl --silent  -H "Content-Type: application/json; charset=UTF-8" -u $username:$pass "https://radiumone.jira.com/rest/api/2/search?jql=project="Datatech"%20AND%20issuetype="Epic"%20AND%20labels=DWPM&maxResults=1000" > epic_response
-epic_count=$(cat epic_response | jsawk -n 'out(this.issues)' | jsawk -a 'return this.length')
-echo $epic_count epics
+  echo "---------------"
+  echo "Finding Epics: "
+  curl --silent  -H "Content-Type: application/json; charset=UTF-8" -u $username:$pass "https://radiumone.jira.com/rest/api/2/search?jql=project="Datatech"%20AND%20issuetype="Epic"%20AND%20labels=DWPM&maxResults=1000" > epic_response
+  epic_count=$(cat epic_response | jsawk -n 'out(this.issues)' | jsawk -a 'return this.length')
+  echo $epic_count epics
 
 
-epic_summary=()
-epic_key=()
-for (( cnt=0; cnt<$epic_count; cnt++ ))
-do
-  interested_in=$(cat epic_response | jsawk -n "out(this.issues[$cnt])")
-  epic_key[cnt]=$(echo $interested_in | jsawk -n "out(this.key)")
-  epic_summary[cnt]=$(echo $interested_in | jsawk -n "out(this.fields.summary)")
-  echo "${epic_key[cnt]} | ${epic_summary[cnt]}" >> epics
-done
-
-for sprint in "${sprints[@]}"
-do
-
-  curl --silent  -H "Content-Type: application/json; charset=UTF-8" -u $username:$pass "https://radiumone.jira.com/rest/api/2/search?jql=project="Datatech"%20AND%20issuetype!="Epic"%20AND%20labels=DWPM%20AND%20sprint=$sprint+order+by+assignee&maxResults=1000" > sprint_response
-  other_count=$(cat sprint_response | jsawk -n 'out(this.issues)' | jsawk -a 'return this.length')
-
-  for (( cnt=0; cnt<$other_count; cnt++ ))
+  epic_key=()
+  for (( cnt=0; cnt<$epic_count; cnt++ ))
   do
-    interested_in=$(cat sprint_response | jsawk -n "out(this.issues[$cnt])")
-    issue_assignee=$(echo $interested_in | jsawk -n "out(this.fields.assignee.displayName)")
-    issue_assignee_username=$(echo $interested_in | jsawk -n "out(this.fields.assignee.name)")
-    issue_summary=$(echo $interested_in | jsawk -n "out(this.fields.summary)")
-    issue_key=$(echo $interested_in | jsawk -n "out(this.key)")
-    issue_status=$(echo $interested_in | jsawk -n "out(this.fields.status.name)")
-    issue_status_id=$(echo $interested_in | jsawk -n "out(this.fields.status.id)")
-    issue_estimate=$(echo $interested_in | jsawk -n "out(this.fields.aggregatetimeoriginalestimate)")
-    echo "$issue_assignee_username|$issue_assignee|$sprint|$issue_key|$issue_summary|$issue_status|$issue_status_id|$issue_estimate" >> sprint
-  done
+    interested_in=$(cat epic_response | jsawk -n "out(this.issues[$cnt])")
+    epic_key[cnt]=$(echo $interested_in | jsawk -n "out(this.key)")
 
-  developers=($(sort -k 1 -t"|" sprint | cut -d"|" -f1 | uniq))
-done
+    curl --silent  -H "Content-Type: application/json; charset=UTF-8" -u $username:$pass "https://radiumone.jira.com/rest/greenhopper/1.0/rapid/charts/epicreport?rapidViewId=35&epicKey=${epic_key[cnt]}&_=1406580219685" > epic_data
 
-#printf "%-30s %-7s %-7s %-7s %-7s %-7s %-7s %-10s %s" "Developer" "Sprint" "Issues" "Done" "Working" "To-Do" "Days" "Days-Done" "Progress" > dev_report
+    interested_in=$(cat epic_data | jsawk -n "out(this.epic)")
+    epic_key=$(echo $interested_in | jsawk -n 'out(this.key)')
+    epic_label=$(echo $interested_in | jsawk -n 'out(this.label)')
+    header="$epic_label - $epic_key"
+    echo $header >> epic_report
 
-echo "Remaining work for current sprint by developer" > dev_remaining
-
-for developer in "${developers[@]}"
-do
-  echo $developer >> dev_remaining
-  current_sprint=1
-  for sprint in ${sprints[@]}
-  do
-    final=0
-    if [ $current_sprint -eq 1 ]; then
-      final=1
+    interested_in_content=$(cat epic_data | jsawk -n "out(this.contents)")
+    epic_time_total=$(echo $interested_in_content | jsawk -n 'out(this.allIssuesEstimateSum.value)')
+    epic_time_completed=$(echo $interested_in_content | jsawk -n 'out(this.completedIssuesEstimateSum.value)')
+    epic_time_remaining=$(echo $interested_in_content | jsawk -n 'out(this.incompletedIssuesEstimateSum.value)')
+    if [ $epic_time_total -ne 0 ]; then
+      epic_complete=$(((100*epic_time_completed)/epic_time_total))
     fi
-    awk -v "developer=$developer" -v "sprint=$sprint" -v "final=$final" -f process.awk sprint
-    current_sprint=$((current_sprint+1))
+    time_left="    $epic_complete% complete, $((epic_time_remaining/60/60/6)) days remaining"
+    echo $time_left >> epic_report
+    has_tickets=0
+    for issueType in "incompleteEstimatedIssues" "incompleteUnestimatedIssues" "completedIssues"
+    do
+      ticket_count=$(echo $interested_in_content | jsawk -n "out(this.$issueType)" | jsawk -a 'return this.length')
+      reg='^[0-9]+$'
+      if [[ $ticket_count =~ $reg ]]; then
+        if [ "$ticket_count" != 0 ]; then
+          has_tickets=$((has_tickets+1))
+          if [ "$issueType" != "completedIssues" ]; then
+            for((cntb=0; cntb<ticket_count; cntb++))
+            do
+              interested_in=$(echo $interested_in_content | jsawk -n "out(this.$issueType[$cntb])")
+              ticket_key=$(echo $interested_in | jsawk -n 'out(this.key)')
+              ticket_summary=$(echo $interested_in | jsawk -n 'out(this.summary)')
+              ticket_assignee=$(echo $interested_in | jsawk -n 'out(this.assigneeName)')
+              echo "    $ticket_key - $ticket_summary ($ticket_assignee)" >> epic_report
+            done
+          fi
+        fi
+      fi
+    done
+    if [ $has_tickets -eq 0 ]; then
+      echo "No tickets defined for epic yet..." >> epic_report
+    fi
+    echo "" >> epic_report
   done
-  echo "" >> dev_remaining
-done
+
+else 
+
+  for sprint in "${sprints[@]}"
+  do
+
+    curl --silent  -H "Content-Type: application/json; charset=UTF-8" -u $username:$pass "https://radiumone.jira.com/rest/api/2/search?jql=project="Datatech"%20AND%20issuetype!="Epic"%20AND%20labels=DWPM%20AND%20sprint=$sprint+order+by+assignee&maxResults=1000" > sprint_response
+    other_count=$(cat sprint_response | jsawk -n 'out(this.issues)' | jsawk -a 'return this.length')
+
+    for (( cnt=0; cnt<$other_count; cnt++ ))
+    do
+      interested_in=$(cat sprint_response | jsawk -n "out(this.issues[$cnt])")
+      issue_assignee=$(echo $interested_in | jsawk -n "out(this.fields.assignee.displayName)")
+      issue_assignee_username=$(echo $interested_in | jsawk -n "out(this.fields.assignee.name)")
+      issue_summary=$(echo $interested_in | jsawk -n "out(this.fields.summary)")
+      issue_key=$(echo $interested_in | jsawk -n "out(this.key)")
+      issue_status=$(echo $interested_in | jsawk -n "out(this.fields.status.name)")
+      issue_status_id=$(echo $interested_in | jsawk -n "out(this.fields.status.id)")
+      issue_estimate=$(echo $interested_in | jsawk -n "out(this.fields.aggregatetimeoriginalestimate)")
+      echo "$issue_assignee_username|$issue_assignee|$sprint|$issue_key|$issue_summary|$issue_status|$issue_status_id|$issue_estimate" >> sprint
+    done
+
+    developers=($(sort -k 1 -t"|" sprint | cut -d"|" -f1 | uniq))
+  done
+
+  #printf "%-30s %-7s %-7s %-7s %-7s %-7s %-7s %-10s %s" "Developer" "Sprint" "Issues" "Done" "Working" "To-Do" "Days" "Days-Done" "Progress" > dev_report
+
+  echo "Remaining work for current sprint by developer" > dev_remaining
+
+  for developer in "${developers[@]}"
+  do
+    echo $developer >> dev_remaining
+    current_sprint=1
+    for sprint in ${sprints[@]}
+    do
+      final=0
+      if [ $current_sprint -eq 1 ]; then
+        final=1
+      fi
+      awk -v "developer=$developer" -v "sprint=$sprint" -v "final=$final" -f process.awk sprint
+      current_sprint=$((current_sprint+1))
+    done
+    echo "" >> dev_remaining
+  done
+
+fi
 
 echo "Done."
 
-echo "" >> dev_report
-cat dev_remaining >> dev_report
+if [ $report_type -eq 0 ]; then
+  echo "" >> dev_report
+  cat dev_remaining >> dev_report
+  cat dev_report
+  mail -s "Data Warehouse Sprint Status" -F "adam@radiumone.com" "adam@radiumone.com" "adam+1@radiumone.com" < dev_report
+  rm -rf sprint
+  rm -rf sprint_response
+  rm -rf dev_report
+  rm -rf dev_remaining
 
-cat dev_report
+else
+  cat epic_report
+  mail -s "Data Warehouse Epic Status" -F "adam@radiumone.com" "adam@radiumone.com" "adam+1@radiumone.com" < epic_report
+  rm -rf epic_data
+  rm -rf epic_report
+  rm -rf epic_response
+fi
 
-mail -s "Data Warehouse Sprint Status" -F "adam@radiumone.com" "adam@radiumone.com" "adam+1@radiumone.com" < dev_report
-
-rm -rf sprint
-rm -rf epic_response   
-rm -rf epics 
-rm -rf sprint_response
-rm -rf dev_report
-rm -rf dev_remaining
