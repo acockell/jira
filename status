@@ -15,6 +15,7 @@
 username=$1
 pass=$2
 report_type=$3
+stakeholder_email=$4 #comma seperated
 
 if [ -z $report_type ]; then
   #sprint
@@ -137,7 +138,7 @@ if [ $report_type -eq 0 ]; then
   echo "" >> dev_report
   cat dev_remaining >> dev_report
   cat dev_report
-  mail -s "Data Warehouse Sprint Status" -F "adam@radiumone.com" "adam@radiumone.com" "adam+1@radiumone.com" < dev_report
+  mail -s "Data Warehouse Sprint Status" -F "adam@radiumone.com" "$stakeholder_email" < dev_report
   rm -rf sprint
   rm -rf sprint_response
   rm -rf dev_report
@@ -145,7 +146,7 @@ if [ $report_type -eq 0 ]; then
 
 else
   cat epic_report
-  mail -s "Data Warehouse Epic Status" -F "adam@radiumone.com" "adam@radiumone.com" "adam+1@radiumone.com" < epic_report
+  mail -s "Data Warehouse Epic Status" -F "adam@radiumone.com" "$stakeholder_email" < epic_report
   rm -rf epic_data
   rm -rf epic_report
   rm -rf epic_response
