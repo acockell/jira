@@ -41,7 +41,7 @@ BEGIN {
 
 END {
   if(final == 1){
-    print "\n"developer_name" on the current sprint ("sprint")" >> "dev_report"
+    print "\n"developer_name" on sprint "sprint >> "dev_report"
 #  }
  # else {
   #  print "\nOn sprint "sprint >> "dev_report"
