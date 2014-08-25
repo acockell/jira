@@ -42,13 +42,13 @@ BEGIN {
 END {
   if(final == 1){
     print "\n"developer_name" on the current sprint ("sprint")" >> "dev_report"
-  }
-  else {
-    print "\nOn sprint "sprint >> "dev_report"
-  }
+#  }
+ # else {
+  #  print "\nOn sprint "sprint >> "dev_report"
+ # }
   print "- Issues: "issue_count >> "dev_report"
   print "- Total time commitment: "(time_commitment/60/60/6)" days" >> "dev_report"
-  if(final == 1){
+  #if(final == 1){
     print "- Completed: "complete_count >> "dev_report"
     print "- In-Progress: "in_progress_count >> "dev_report"
     print "- Unstarted: "unstarted_count >> "dev_report"
@@ -58,7 +58,7 @@ END {
       percent_complete=(complete_time/time_commitment*100)
     }
     print "- Percentage of work completed: "percent_complete"%" >> "dev_report"
-  }
+  #}
   #printf "\n%-30s %-7s %-7s %-7s %-7s %-7s %-7.1f %-10.1f %.1f%%", developer_name, sprint, issue_count, complete_count, in_progress_count, unstarted_count, (time_commitment/60/60/24), (complete_time/60/60/24), percent_complete >> "dev_report"
-
+  }
 }
