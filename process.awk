@@ -40,7 +40,7 @@ BEGIN {
 }
 
 END {
-  if(final == 1)&&(developer_name != ""){
+  if((final == 1)&&(developer_name != "")){
     print "\n"developer_name" on sprint "sprint >> "dev_report"
 #  }
  # else {
