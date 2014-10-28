@@ -7,10 +7,11 @@ password=$2
 stakeholder_email=$3 #comma seperated
 sender_email=$4
 
-rm -rf manage_report
+echo "If you are receiving this email, you are either a project stakeholder or blocker to the release process.  The following items require your immediate attention.  Please update and/or complete these tickets as soon as possible to move the project forward." > manage_report
+echo "" >> manage_report
 
-curl --silent  -H "Content-Type: application/json; charset=UTF-8" -u $username:$password "https://radiumone.jira.com/rest/api/2/search?jql=project%20in%20%28"GPUMEMSQL",\"CONNECT\"%29%20AND%20labels="project_managed"%20AND%20status!="Closed"%20AND%20issuetype!="Epic"+order+by+assignee&maxResults=1000" > manage_response
-
+function process {
+changes=$1
 other_count=$(cat manage_response | jsawk -n 'out(this.issues)' | jsawk -a 'return this.length')
 emails=""
 
@@ -27,19 +28,35 @@ do
   issue_estimate=$(echo $interested_in | jsawk -n "out(this.fields.aggregatetimeoriginalestimate)")
   issue_description=$(echo $interested_in | jsawk -n "out(this.fields.description)")
 
-  emails="$issue_email,$emails"
-  echo "" >> manage_report
-  echo "$issue_assignee : $issue_summary  ( $issue_status )" >> manage_report
-  echo "Description: $issue_description" >> manage_report
-  echo "Link: https://radiumone.jira.com/browse/$issue_key" >> manage_report
-  echo "---------------------------------------------------------------------------------" >> manage_report
-done 
+  if [ $changes -eq 0 ]; then
+    emails="$issue_email,$emails"
+    echo "" >> manage_report
+    echo "$issue_assignee : $issue_summary  ( $issue_status )" >> manage_report
+    echo "Description: $issue_description" >> manage_report
+    echo "Link: https://radiumone.jira.com/browse/$issue_key" >> manage_report
+    echo "---------------------------------------------------------------------------------" >> manage_report
+  else
+    echo "Link: https://radiumone.jira.com/browse/$issue_key" >> manage_report
+  fi
+done
+
+}
+
+curl --silent  -H "Content-Type: application/json; charset=UTF-8" -u $username:$password "https://radiumone.jira.com/rest/api/2/search?jql=project%20in%20%28"GPUMEMSQL",\"CONNECT\"%29%20AND%20labels="project_managed"%20AND%20status!="Closed"%20AND%20updated%3E=-3h%20AND%20issuetype!="Epic"+order+by+assignee&maxResults=1000" > manage_response
+echo "Updated in the last 3 hours:" >> manage_report
+process 1
+
+curl --silent  -H "Content-Type: application/json; charset=UTF-8" -u $username:$password "https://radiumone.jira.com/rest/api/2/search?jql=project%20in%20%28"GPUMEMSQL",\"CONNECT\"%29%20AND%20labels="project_managed"%20AND%20status!="Closed"%20AND%20issuetype!="Epic"+order+by+assignee&maxResults=1000" > manage_response
+echo "" >> manage_report
+echo "Outstanding blockers:" >> manage_report
+process 0
 
 echo "" >> manage_report
-echo "If you have a blocker, please reply to this email." >> manage_report
+echo "If you have an unlisted blocker, please reply to this email." >> manage_report
 echo "" >> manage_report
 echo "Thank you" >> manage_report
 echo "Adam (adam@radiumone.com)" >> manage_report
 
 echo $emails
-mail -s "Connect Project Status" -F "$stakeholder_email,$emails" -f "$sender_email" < manage_report
+emails=""
+mail -s "Connect Project Blocker Status" -F "$stakeholder_email,$emails" -f "$sender_email" < manage_report
