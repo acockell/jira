@@ -1,0 +1,45 @@
+#!/bin/bash
+# Adam Cockell
+# looks for jira items labeled with project_managed
+
+username=$1
+password=$2
+stakeholder_email=$3 #comma seperated
+sender_email=$4
+
+rm -rf manage_report
+
+curl --silent  -H "Content-Type: application/json; charset=UTF-8" -u $username:$password "https://radiumone.jira.com/rest/api/2/search?jql=project%20in%20%28"GPUMEMSQL",\"CONNECT\"%29%20AND%20labels="project_managed"%20AND%20status!="Closed"%20AND%20issuetype!="Epic"+order+by+assignee&maxResults=1000" > manage_response
+
+other_count=$(cat manage_response | jsawk -n 'out(this.issues)' | jsawk -a 'return this.length')
+emails=""
+
+for (( cnt=0; cnt<$other_count; cnt++ ))
+do   
+  interested_in=$(cat manage_response | jsawk -n "out(this.issues[$cnt])")
+  issue_assignee=$(echo $interested_in | jsawk -n "out(this.fields.assignee.displayName)")
+  issue_email=$(echo $interested_in | jsawk -n "out(this.fields.assignee.emailAddress)")
+  issue_assignee_username=$(echo $interested_in | jsawk -n "out(this.fields.assignee.name)")
+  issue_summary=$(echo $interested_in | jsawk -n "out(this.fields.summary)")
+  issue_key=$(echo $interested_in | jsawk -n "out(this.key)")
+  issue_status=$(echo $interested_in | jsawk -n "out(this.fields.status.name)")
+  issue_status_id=$(echo $interested_in | jsawk -n "out(this.fields.status.id)")
+  issue_estimate=$(echo $interested_in | jsawk -n "out(this.fields.aggregatetimeoriginalestimate)")
+  issue_description=$(echo $interested_in | jsawk -n "out(this.fields.description)")
+
+  emails="$issue_email,$emails"
+  echo "" >> manage_report
+  echo "$issue_assignee : $issue_summary  ( $issue_status )" >> manage_report
+  echo "Description: $issue_description" >> manage_report
+  echo "Link: https://radiumone.jira.com/browse/$issue_key" >> manage_report
+  echo "---------------------------------------------------------------------------------" >> manage_report
+done 
+
+echo "" >> manage_report
+echo "If you have a blocker, please reply to this email." >> manage_report
+echo "" >> manage_report
+echo "Thank you" >> manage_report
+echo "Adam (adam@radiumone.com)" >> manage_report
+
+echo $emails
+mail -s "Connect Project Status" -F "$stakeholder_email,$emails" -f "$sender_email" < manage_report
