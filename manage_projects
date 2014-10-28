@@ -55,8 +55,7 @@ echo "" >> manage_report
 echo "If you have an unlisted blocker, please reply to this email." >> manage_report
 echo "" >> manage_report
 echo "Thank you" >> manage_report
-echo "Adam (adam@radiumone.com)" >> manage_report
+echo "$sender_email" >> manage_report
 
 echo $emails
-emails=""
 mail -s "Connect Project Blocker Status" -F "$stakeholder_email,$emails" -f "$sender_email" < manage_report
