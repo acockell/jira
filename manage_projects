@@ -1,6 +1,6 @@
 #!/bin/bash
 # Adam Cockell
-# looks for jira items labeled with project_managed
+# looks for jira items labeled with project_managed_connect
 
 username=$1
 password=$2
@@ -42,11 +42,11 @@ done
 
 }
 
-curl --silent  -H "Content-Type: application/json; charset=UTF-8" -u $username:$password "https://radiumone.jira.com/rest/api/2/search?jql=project%20in%20%28"GPUMEMSQL",\"CONNECT\"%29%20AND%20labels="project_managed"%20AND%20status!="Closed"%20AND%20updated%3E=-1d%20AND%20issuetype!="Epic"+order+by+assignee&maxResults=1000" > manage_response
+curl --silent  -H "Content-Type: application/json; charset=UTF-8" -u $username:$password "https://radiumone.jira.com/rest/api/2/search?jql=project%20in%20%28"GPUMEMSQL",\"CONNECT\","QAPO"%29%20AND%20labels="project_managed_connect"%20AND%20status!="Closed"%20AND%20updated%3E=-1d%20AND%20issuetype!="Epic"+order+by+assignee&maxResults=1000" > manage_response
 echo "Updated in the last 24 hours:" >> manage_report
 process 1
 
-curl --silent  -H "Content-Type: application/json; charset=UTF-8" -u $username:$password "https://radiumone.jira.com/rest/api/2/search?jql=project%20in%20%28"GPUMEMSQL",\"CONNECT\"%29%20AND%20labels="project_managed"%20AND%20status!="Closed"%20AND%20issuetype!="Epic"+order+by+assignee&maxResults=1000" > manage_response
+curl --silent  -H "Content-Type: application/json; charset=UTF-8" -u $username:$password "https://radiumone.jira.com/rest/api/2/search?jql=project%20in%20%28"GPUMEMSQL",\"CONNECT\","QAPO"%29%20AND%20labels="project_managed_connect"%20AND%20status!="Closed"%20AND%20issuetype!="Epic"+order+by+assignee&maxResults=1000" > manage_response
 echo "" >> manage_report
 echo "Outstanding blockers:" >> manage_report
 process 0
