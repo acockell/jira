@@ -42,8 +42,8 @@ done
 
 }
 
-curl --silent  -H "Content-Type: application/json; charset=UTF-8" -u $username:$password "https://radiumone.jira.com/rest/api/2/search?jql=project%20in%20%28"GPUMEMSQL",\"CONNECT\"%29%20AND%20labels="project_managed"%20AND%20status!="Closed"%20AND%20updated%3E=-3h%20AND%20issuetype!="Epic"+order+by+assignee&maxResults=1000" > manage_response
-echo "Updated in the last 3 hours:" >> manage_report
+curl --silent  -H "Content-Type: application/json; charset=UTF-8" -u $username:$password "https://radiumone.jira.com/rest/api/2/search?jql=project%20in%20%28"GPUMEMSQL",\"CONNECT\"%29%20AND%20labels="project_managed"%20AND%20status!="Closed"%20AND%20updated%3E=-1d%20AND%20issuetype!="Epic"+order+by+assignee&maxResults=1000" > manage_response
+echo "Updated in the last 24 hours:" >> manage_report
 process 1
 
 curl --silent  -H "Content-Type: application/json; charset=UTF-8" -u $username:$password "https://radiumone.jira.com/rest/api/2/search?jql=project%20in%20%28"GPUMEMSQL",\"CONNECT\"%29%20AND%20labels="project_managed"%20AND%20status!="Closed"%20AND%20issuetype!="Epic"+order+by+assignee&maxResults=1000" > manage_response
