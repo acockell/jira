@@ -36,7 +36,7 @@ do
     echo "Link: https://radiumone.jira.com/browse/$issue_key" >> manage_report
     echo "---------------------------------------------------------------------------------" >> manage_report
   else
-    echo "Link: https://radiumone.jira.com/browse/$issue_key" >> manage_report
+    echo "$issue_assignee : https://radiumone.jira.com/browse/$issue_key" >> manage_report
   fi
 done
 
