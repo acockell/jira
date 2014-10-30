@@ -58,5 +58,5 @@ echo "Thank you" >> manage_report
 echo "$sender_email" >> manage_report
 
 echo $emails
-emails="" # for debugging
+#emails="" # for debugging
 mail -s "Connect Project Blocker Status" -F "$stakeholder_email,$emails" -f "$sender_email" < manage_report
