@@ -46,7 +46,7 @@ curl --silent  -H "Content-Type: application/json; charset=UTF-8" -u $username:$
 echo "Updated in the last 24 hours:" >> manage_report
 process 1
 
-curl --silent  -H "Content-Type: application/json; charset=UTF-8" -u $username:$password "https://radiumone.jira.com/rest/api/2/search?jql=labels="project_managed_connect"%20AND%20status!="Closed"%20AND%20status!="Done"%20AND%20stat     us!="Resolved"%20AND%20issuetype!="Epic"+order+by+assignee&maxResults=1000" > manage_response
+curl --silent  -H "Content-Type: application/json; charset=UTF-8" -u $username:$password "https://radiumone.jira.com/rest/api/2/search?jql=labels="project_managed_connect"%20AND%20status!="Closed"%20AND%20status!="Done"%20AND%20status!="Resolved"%20AND%20issuetype!="Epic"+order+by+assignee&maxResults=1000" > manage_response
 echo "" >> manage_report
 echo "Outstanding blockers:" >> manage_report
 process 0
