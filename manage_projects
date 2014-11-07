@@ -1,18 +1,24 @@
 #!/bin/bash
 # Adam Cockell
-# looks for jira items labeled with project_managed_connect
+# looks for jira items labeled with label_keyword
 
 username=$1
 password=$2
 stakeholder_email=$3 #comma seperated
 sender_email=$4
+label_keyword=$5 # a blocking label, like project_managed_connect
+project_name=$6
 
 echo "If you are receiving this email, you are either a project stakeholder or blocker to the release process.  The following items require your immediate attention.  Please update and/or complete these tickets as soon as possible to move the project forward." > manage_report
 echo "" >> manage_report
 
+ticket_count=0
+
 function process {
 changes=$1
 other_count=$(cat manage_response | jsawk -n 'out(this.issues)' | jsawk -a 'return this.length')
+ticket_count=$other_count
+echo $ticket_count
 emails=""
 
 for (( cnt=0; cnt<$other_count; cnt++ ))
@@ -42,11 +48,11 @@ done
 
 }
 
-curl --silent  -H "Content-Type: application/json; charset=UTF-8" -u $username:$password "https://radiumone.jira.com/rest/api/2/search?jql=labels="project_managed_connect"%20AND%20status!="Closed"%20AND%20status!="Done"%20AND%20status!="Resolved"%20AND%20updated%3E=-1d%20AND%20issuetype!="Epic"+order+by+assignee&maxResults=1000" > manage_response
+curl --silent  -H "Content-Type: application/json; charset=UTF-8" -u $username:$password "https://radiumone.jira.com/rest/api/2/search?jql=labels="$label_keyword"%20AND%20status!="Closed"%20AND%20status!="Done"%20AND%20status!="Resolved"%20AND%20updated%3E=-1d%20AND%20issuetype!="Epic"+order+by+assignee&maxResults=1000" > manage_response
 echo "Updated in the last 24 hours:" >> manage_report
 process 1
 
-curl --silent  -H "Content-Type: application/json; charset=UTF-8" -u $username:$password "https://radiumone.jira.com/rest/api/2/search?jql=labels="project_managed_connect"%20AND%20status!="Closed"%20AND%20status!="Done"%20AND%20status!="Resolved"%20AND%20issuetype!="Epic"+order+by+assignee&maxResults=1000" > manage_response
+curl --silent  -H "Content-Type: application/json; charset=UTF-8" -u $username:$password "https://radiumone.jira.com/rest/api/2/search?jql=labels="$label_keyword"%20AND%20status!="Closed"%20AND%20status!="Done"%20AND%20status!="Resolved"%20AND%20issuetype!="Epic"+order+by+assignee&maxResults=1000" > manage_response
 echo "" >> manage_report
 echo "Outstanding blockers:" >> manage_report
 process 0
@@ -59,4 +65,6 @@ echo "$sender_email" >> manage_report
 
 echo $emails
 #emails="" # for debugging
-mail -s "Connect Project Blocker Status" -F "$stakeholder_email,$emails" -f "$sender_email" < manage_report
+if [ $ticket_count -gt 0 ]; then
+  mail -s "$project_name Project Blocker Status" -F "$stakeholder_email,$emails" -f "$sender_email" < manage_report
+fi
