@@ -52,6 +52,8 @@ curl --silent  -H "Content-Type: application/json; charset=UTF-8" -u $username:$
 echo "Updated in the last 24 hours:" >> manage_report
 process 1
 
+echo "curl --silent  -H \"Content-Type: application/json; charset=UTF-8\" -u $username:$password \"https://radiumone.jira.com/rest/api/2/search?jql=labels=\"$label_keyword\"%20AND%20issuetype!=\"Epic\"+order+by+assignee&maxResults=1000\""
+
 curl --silent  -H "Content-Type: application/json; charset=UTF-8" -u $username:$password "https://radiumone.jira.com/rest/api/2/search?jql=labels="$label_keyword"%20AND%20status!="Closed"%20AND%20status!="Done"%20AND%20status!="Resolved"%20AND%20issuetype!="Epic"+order+by+assignee&maxResults=1000" > manage_response
 echo "" >> manage_report
 echo "Outstanding blockers:" >> manage_report
@@ -64,7 +66,7 @@ echo "Thank you" >> manage_report
 echo "$sender_email" >> manage_report
 
 echo $emails
-#emails="" # for debugging
+emails="" # for debugging
 if [ $ticket_count -gt 0 ]; then
   mail -s "$project_name Project Blocker Status" -F "$stakeholder_email,$emails" -f "$sender_email" < manage_report
 fi
