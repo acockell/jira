@@ -1,4 +1,5 @@
 require 'date'
+#usage: ruby elapsed.rb "2014-10-27T17:00:45.000-0700" "2014-10-27T18:53:11.000-0700"
 
 @created, @completed = ARGV
 
