@@ -1,0 +1,71 @@
+#!/bin/bash
+# Adam Cockell
+# Quick upload to jira
+
+username=$1
+password=$2
+
+source=~/dmp/spec/api_test_ideas/Search_API_tests/search_API_search_SSO.rb
+
+lc=($(cat $source | wc -l))
+echo $lc
+
+bracket=0
+hold=()
+last_context=""
+echo "" > save
+echo "" > curl_command
+
+for((c=0; c<lc; c++))
+do
+  line=$(sed -n ${c}p $source)
+  context=$(echo $line | grep "context ")
+  it=$(echo $line | grep "it ")
+  doo=$(echo $line | grep " do")
+  close=$(echo $line | grep "end")
+  describe=$(echo $line | grep ".describe")
+
+  if [ "$context" != "" ]; then
+    #      echo "FOUND CONTEXT for $bracket: $context"
+    context=$(echo $context | sed "s/\"//g")
+    hold[bracket]=" $context > "
+    (( bracket += 1 ))
+
+  fi
+
+  if [ "$it" != "" ]; then
+    if [[ "$doo" != "" && "$context" == "" ]]; then
+      #      echo "FOUND CASE for $bracket: $it"
+      it=$(echo $it | sed "s/\"//g")
+      hold[bracket]=" $it"
+      (( bracket += 1 ))
+    fi
+  fi
+
+  if [ "$describe" != "" ]; then·
+    describe=$(echo $describe | sed "s/\"//g")
+    hold[bracket]=" $describe > "
+    (( bracket += 1 ))
+  fi
+
+  if [ "$close" != "" ]; then
+    #    echo "FOUND CLOSE for $bracket: $close"
+    (( bracket -= 1 ))
+
+    save_me="RSpec Test: ${hold[0]}${hold[1]}${hold[2]}${hold[3]}${hold[4]}"·
+    if [ "$save_me" != "$last_save" ]; then
+      echo $save_me >> save
+      post_data="'{\"fields\":{\"parent\":{\"key\":\"DMP-1001\"},\"issuetype\":{\"id\":\"7\"},\"project\":{\"key\":\"DMP\"},\"description\":\"$save_me\",\"summary\":\"RSpec Search: search_API_search_SSO.rb $c\",\"assignee\":{\"name\":\"ikarataev\"}}}'"
+
+      echo $post_data
+      echo "curl -D- -u $username:$password -X POST --data $post_data -H \"Content-Type: application/json\" \"https://radiumone.jira.com/rest/api/2/issue/\"" >> curl_command
+      last_save=$save_me
+    fi
+  fi·
+
+  echo $bracket $c
+done
+
+#DO NOT DO DUPLICATES!
+cat save
+./curl_command
